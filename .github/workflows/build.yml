@@ -1,6 +1,8 @@
 name: Build and Publish Docker Image
 
 on:
+  push:
+    branches: [main]
   release:
     types: [published]
   schedule:
@@ -37,6 +39,9 @@ jobs:
           if [[ "${{ github.event_name }}" == "release" ]]; then
             echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             echo "IS_RELEASE=true" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "TAG=main" >> $GITHUB_ENV
+            echo "IS_RELEASE=false" >> $GITHUB_ENV
           else
             # For scheduled builds, use monthly tag
             echo "TAG=monthly-$(date +'%Y-%m')" >> $GITHUB_ENV
