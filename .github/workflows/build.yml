@@ -37,23 +37,23 @@ jobs:
         id: extract_tag
         run: |
           if [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-            echo "IS_RELEASE=true" >> $GITHUB_ENV
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "push" ]]; then
-            echo "TAG=main" >> $GITHUB_ENV
-            echo "IS_RELEASE=false" >> $GITHUB_ENV
+            echo "tag=main" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
           else
             # For scheduled builds, use monthly tag
-            echo "TAG=monthly-$(date +'%Y-%m')" >> $GITHUB_ENV
-            echo "IS_RELEASE=false" >> $GITHUB_ENV
+            echo "tag=monthly-$(date +'%Y-%m')" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Determine if tag is stable
         id: is_stable
         run: |
-          if [[ "$IS_RELEASE" == "true" ]]; then
+          if [[ "${{ steps.extract_tag.outputs.is_release }}" == "true" ]]; then
             # Check if the tag is a stable SemVer (no pre-release or beta)
-            if [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            if [[ "${{ steps.extract_tag.outputs.tag }}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "stable=true" >> $GITHUB_OUTPUT
             else
               echo "stable=false" >> $GITHUB_OUTPUT
@@ -74,5 +74,5 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository }}:${{ env.TAG }}
+            ghcr.io/${{ github.repository }}:${{ steps.extract_tag.outputs.tag }}
             ${{ steps.is_stable.outputs.stable == 'true' && format('ghcr.io/{0}:latest', github.repository) || '' }}
