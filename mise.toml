@@ -1,0 +1,10 @@
+[tools]
+aws-cli = "latest"
+node = "latest"
+opentofu = "latest"
+"pipx:pipx" = "latest"
+"pipx:pre-commit" = "latest"
+python = "latest"
+terraform = "latest"
+tflint = "latest"
+uv = "latest"

@@ -1,43 +1,30 @@
-FROM alpine:latest
+FROM debian:bookworm-slim
 
-# Install dependencies
-RUN apk add --no-cache \
-    curl \
-    unzip \
-    git \
-    bash \
-    python3 \
-    pipx \
-    py3-pip \
-    npm \
-    jq \
-    aws-cli
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install Terraform (latest)
-RUN LATEST_TF=$(curl -s https://releases.hashicorp.com/terraform/ | grep -Eo 'terraform/[0-9.]+/' | head -1 | cut -d'/' -f2) && \
-    curl -Lo terraform.zip https://releases.hashicorp.com/terraform/${LATEST_TF}/terraform_${LATEST_TF}_linux_amd64.zip && \
-    unzip terraform.zip && \
-    mv terraform /usr/local/bin/ && \
-    rm terraform.zip
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        git \
+        jq \
+        libatomic1 \
+        unzip \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install OpenTofu (latest)
-RUN LATEST_TOFU=$(curl -s https://api.github.com/repos/opentofu/opentofu/releases/latest | grep tag_name | cut -d '"' -f4 | sed 's/v//') && \
-    curl -Lo tofu.zip https://github.com/opentofu/opentofu/releases/download/v${LATEST_TOFU}/tofu_${LATEST_TOFU}_linux_amd64.zip && \
-    unzip tofu.zip && \
-    mv tofu /usr/local/bin/ && \
-    rm tofu.zip
+ENV MISE_DATA_DIR="/mise" \
+    MISE_CONFIG_DIR="/mise" \
+    MISE_CACHE_DIR="/mise/cache" \
+    MISE_INSTALL_PATH="/usr/local/bin/mise" \
+    PATH="/mise/shims:${PATH}"
 
-# Install tflint (latest)
-RUN LATEST_TFLINT=$(curl -s https://api.github.com/repos/terraform-linters/tflint/releases/latest | grep tag_name | cut -d '"' -f4 | sed 's/v//') && \
-    curl -Lo tflint.zip https://github.com/terraform-linters/tflint/releases/download/v${LATEST_TFLINT}/tflint_linux_amd64.zip && \
-    unzip tflint.zip && \
-    mv tflint /usr/local/bin/ && \
-    rm tflint.zip
+RUN mkdir -p "${MISE_CONFIG_DIR}" "${MISE_CACHE_DIR}"
 
-# Install pre-commit - PEP 668 compliant
-RUN pipx install pre-commit
+COPY mise.toml /mise/config.toml
 
-# Ensure pipx-installed binaries are in PATH
-ENV PATH="/root/.local/bin:${PATH}"
+RUN curl https://mise.run | sh \
+    && mise install \
+    && mise cache prune --yes
 
 ENTRYPOINT ["/bin/sh"]
